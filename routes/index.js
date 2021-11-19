@@ -30,6 +30,11 @@ router.post('/game/create', (req, res) => {
     res.status(response[0]).send(response[1]);
 });
 
+router.get('/game/:gameId/overview', (req, res) => {
+    const response = gameController.getRoundOverView(req.params.gameId);
+    res.status(response[0]).send(response[1]);
+});
+
 router.post('/game/:gameId/join', (req, res) => {
     const data = req.body;
     data.id = req.socket.remoteAddress;
@@ -45,6 +50,18 @@ router.post('/game/:gameId/guess', async(req, res) => {
     const data = req.body;
     data.userId = req.socket.remoteAddress;
     const response = await gameController.answerQuestion(req.params.gameId, data);
+    res.status(response[0]).send(response[1]);
+});
+
+router.post('/game/:gameId/next-round', (req, res) => {
+    const response = gameController.startNextRound(req.params.gameId, req.body.username, req.socket.remoteAddress);
+    res.status(response[0]).send(response[1]);
+});
+
+router.post('/game/:gameId/leave', (req, res) => {
+    const data = req.body;
+    data.userId = req.socket.remoteAddress;
+    const response = gameController.leaveGame(req.params.gameId, data);
     res.status(response[0]).send(response[1]);
 });
 

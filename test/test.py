@@ -22,8 +22,8 @@ def take_guess(answer, username):
     requests.post(f"{BASE_URL}/game/{GAME_ID}/guess", json=body)
 
 
-creation_body = {"name": "test"}
-
+#creation_body = {"name": "test", "lamp": "http://10.28.209.13:9000/api/197ea42c25303cef1a68c4042ed56887", "lampIndex": 9} #Uni
+creation_body = {"name": "test", "lamp": "http://localhost:8000/api/newdeveloper", "lampIndex": 1}
 game = requests.post(f"{BASE_URL}/game/create", json=creation_body)
 GAME_ID = json.loads(game.text)['id']
 

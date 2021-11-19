@@ -1,9 +1,8 @@
-const User = require('../Models/User');
 const {cryptPassword, comparePassword} = require('../Controller/PasswordController');
 const {GameType} = require('./GameType');
 
 class Game {
-    constructor(id, name) {
+    constructor(id, name, lampUrl, lampIndex) {
         this.id = id;
         this.name = name;
         this.participants = [];
@@ -12,6 +11,11 @@ class Game {
         this.password = '';
         this.gameType = GameType.Distance;
         this.question = 0;
+        this.lastResults = [];
+        this.roundNumber = 0;
+        this.roundOver = false;
+        this.lampUrl = lampUrl;
+        this.lampIndex = lampIndex;
     }
 
     setPassword(password) {
@@ -48,13 +52,15 @@ class Game {
     }
 
     removeParticipant(userName) {
-        for (let user in this.participants) {
+        for (let i = 0; i < this.participants.length; i++) {
+            const user = this.participants[i];
             if (user.name === userName) {
-                this.participants.remove(user);
+                this.participants.splice(i, 1);
                 if (this.participants.length <= 1) {
                     this.finished = true;
                     this.winner = (this.participants[0])?.name;
                 }
+                return;
             }
         }
         throw 'User not found.';

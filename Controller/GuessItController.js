@@ -30,14 +30,15 @@ async function checkAndTrigger(updatedData) {
     });
     if (updatedData.participants.length === answered + dead) {
         const [loser, allResults] = await controlAllResults(updatedData, aliveUsers);
-        const updatedLoser = subLiveFromUser(updatedData.participants, loser);
+        const updatedLoser = subLiveFromUser(updatedData.participants, loser, updatedData.lampUrl, updatedData.lampIndex);
         if (updatedLoser.lives <= 0) {
             dead++;
             if (aliveUsers - 1 <= 1) {
                 updatedData.finished = true;
             }
         }
-        return allResults;
+        updatedData.lastResults = allResults;
+        updatedData.roundOver = true;
     }
     return updatedData;
 }
@@ -54,16 +55,16 @@ async function controlAllResults(game, alivePlayer) {
     results.forEach((result) => {
         if (Math.abs(game.question - result.score) > currDist) {
             currLoser = result.user;
+            currDist = Math.abs(game.question - result.score);
         }
     });
-
     return [currLoser, results];
 }
 
 async function checkResultForUser(user, gameType) {
     let base_url, first_url, second_url, first_response, second_response;
     switch(gameType) {
-        case GameType.Distance:
+        case GameType.Distance: //Implemented by Laurin
             base_url = Apis.Distance.LookUp.replace('{API_KEY}', process.env.API_KEYS_DISTANCE);
             first_url = base_url + user.answer.first;
             second_url = base_url + user.answer.second;
@@ -75,7 +76,7 @@ async function checkResultForUser(user, gameType) {
             distance_url = distance_url.replace('{Destination}', `${coordinates[1].lat},${coordinates[1].lng}`);
             const distance_response = await (await fetch(distance_url)).json();
             return distance_response.routes[0]?.sections[0].summary.length / 1000;
-        case GameType.Temperature:
+        case GameType.Temperature: //Implemented by Chris
             base_url = Apis.Temperature.replace('{API_KEY}', process.env.API_KEYS_TEMPERATURE);
             first_url = base_url.replace('{city_name}', user.answers.first);
             second_url = base_url.replace('{city_name}', user.answers.second);
@@ -86,18 +87,46 @@ async function checkResultForUser(user, gameType) {
     }
 }
 
-function subLiveFromUser(users, loser) {
+function subLiveFromUser(users, loser, lampUrl, startIndex) {
     let updatedLoser;
-    users.forEach((user) => {
+    users.forEach((user, index) => {
         if (user.name === loser) {
             user.lives--;
             updatedLoser = user;
+            if (lampUrl) {
+                updateLightForUser(lampUrl, index + startIndex, user.lives);
+            }
         }
     });
     return updatedLoser;
 }
 
+function updateLightForUser(lampUrl, userNumber, newLives) {
+    const base_url = lampUrl + Apis.Lights.url;
+    const user_url = base_url.replace('{NUMBER}', userNumber);
+    let body;
+    switch(newLives) {
+        case 0:
+            body = Apis.Lights.bodies.redBlink;
+            break;
+        case 1:
+            body = Apis.Lights.bodies.red;
+            break;
+        case 2:
+            body = Apis.Lights.bodies.yellow;
+            break;
+        case 3:
+            body = Apis.Lights.bodies.green;
+            break;
+        case -1:
+            body = Apis.Lights.bodies.off;
+            break;
+    }
+    fetch(user_url, {method: 'PUT', body: JSON.stringify(body)}).catch(r => console.error(r));
+}
+
 module.exports = {
     checkAndTrigger,
     generateNewQuestion,
+    updateLightForUser,
 };
